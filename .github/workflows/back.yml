@@ -49,3 +49,12 @@ jobs:
 
           docker tag "${IMG}:${SHA}" "${IMG}:candidate"
           docker push "${IMG}:candidate"
+
+      - name: Force ECS deploy (update service)
+        run: |
+          aws ecs update-service \
+            --cluster mozart-cemdi-cluster \
+            --service mozart-cemdi-svc \
+            --force-new-deployment \
+            --region us-east-1
+
