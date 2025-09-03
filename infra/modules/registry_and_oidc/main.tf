@@ -14,6 +14,9 @@ resource "aws_ecr_repository" "repo" {
   image_scanning_configuration {
     scan_on_push = true
   }
+   lifecycle {
+    prevent_destroy = true   # evita borrarlo por accidente
+  }
 }
 
 # OIDC provider de GitHub (thumbprint vigente)
