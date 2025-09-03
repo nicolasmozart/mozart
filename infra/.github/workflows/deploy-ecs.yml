@@ -1,0 +1,65 @@
+name: Backend - Deploy to ECS
+
+on:
+  workflow_dispatch:
+    inputs:
+      cluster:
+        description: "ECS cluster name"
+        type: string
+        required: true
+      service:
+        description: "ECS service name"
+        type: string
+        required: true
+      repo:
+        description: "ECR repository name"
+        type: string
+        required: true
+        default: "mozart-ips"
+      tag:
+        description: "Image tag to deploy (candidate or SHA)"
+        type: string
+        required: true
+        default: "candidate"
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS (OIDC - BACK)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_BACK_ARN }}
+
+      - name: Get current task definition
+        run: |
+          aws ecs describe-services \
+            --cluster "${{ inputs.cluster }}" \
+            --services "${{ inputs.service }}" \
+            --query 'services[0].taskDefinition' --output text > td_arn.txt
+          aws ecs describe-task-definition \
+            --task-definition "$(cat td_arn.txt)" \
+            --query 'taskDefinition' > td.json
+
+      - name: Register new task definition (swap image)
+        run: |
+          ACC=$(aws sts get-caller-identity --query Account --output text)
+          IMG="${ACC}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ inputs.repo }}:${{ inputs.tag }}"
+          jq --arg IMG "$IMG" '.containerDefinitions[0].image=$IMG
+            | del(.revision,.status,.taskDefinitionArn,.requiresAttributes,.compatibilities)' td.json > td-new.json
+
+          NEW_TD=$(aws ecs register-task-definition \
+            --cli-input-json file://td-new.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          aws ecs update-service \
+            --cluster "${{ inputs.cluster }}" \
+            --service "${{ inputs.service }}" \
+            --task-definition "$NEW_TD"

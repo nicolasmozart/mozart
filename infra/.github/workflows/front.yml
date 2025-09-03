@@ -1,0 +1,53 @@
+name: Frontend - Build & Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/frontend/**'
+      - '.github/workflows/front.yml'
+  workflow_dispatch: {}
+
+env:
+  AWS_REGION: us-east-1
+  # Configúralas como Repository Variables (no secrets) cuando tengamos la infra del front:
+  S3_BUCKET: ${{ vars.S3_BUCKET }}     # ej: mozart-cemdi-front
+  CF_DIST_ID: ${{ vars.CF_DIST_ID }}   # ej: E3ABCDEF12345
+
+concurrency:
+  group: front-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install & Build
+        working-directory: apps/frontend
+        run: |
+          npm ci
+          npm run build  # genera apps/frontend/dist
+
+      - name: Configure AWS (OIDC - FRONT)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_FRONT_ARN }}
+
+      - name: Upload to S3
+        if: ${{ env.S3_BUCKET != '' }}
+        run: aws s3 sync ./apps/frontend/dist "s3://${{ env.S3_BUCKET }}" --delete
+
+      - name: Invalidate CloudFront
+        if: ${{ env.CF_DIST_ID != '' }}
+        run: aws cloudfront create-invalidation --distribution-id $CF_DIST_ID --paths "/*"

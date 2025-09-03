@@ -1,0 +1,51 @@
+name: Backend - Build & Push ECR
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/back.yml'
+  workflow_dispatch: {}
+
+env:
+  AWS_REGION: us-east-1
+  # Nombre del repo ECR que creaste con Terraform (tu output terminaba en .../mozart-ips)
+  ECR_REPOSITORY: mozart-ips
+
+concurrency:
+  group: back-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write     # OIDC
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS (OIDC - BACK)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_BACK_ARN }}
+
+      - name: ECR login
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & Push
+        run: |
+          set -eux
+          REG="${{ steps.ecr.outputs.registry }}"
+          IMG="${REG}/${{ env.ECR_REPOSITORY }}"
+          SHA="${{ github.sha }}"
+
+          docker build -f apps/backend/Dockerfile apps/backend -t "${IMG}:${SHA}"
+          docker push "${IMG}:${SHA}"
+
+          docker tag "${IMG}:${SHA}" "${IMG}:candidate"
+          docker push "${IMG}:candidate"
