@@ -1,0 +1,33 @@
+node_modules# Node / monorepo
+**/node_modules/
+**/dist/
+**/build/
+**/.env
+**/.env.*
+**/npm-debug.log*
+**/yarn-error.log*
+**/.pnpm-debug.log*
+**/.cache/
+**/.parcel-cache/
+**/.turbo/
+**/.next/
+**/.expo/
+**/coverage/
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Terraform (NO ignores terraform.lock.hcl)
+infra/.terraform/
+infra/terraform.tfstate
+infra/terraform.tfstate.*
+infra/.terraform.tfstate.lock.info
+infra/crash.log
+infra/*tfplan*
+# Si tu tfvars tiene secretos, ignóralo y sube un ejemplo
+infra/terraform.tfvars
+# pero SÍ versiona:
+#! infra/terraform.lock.hcl
