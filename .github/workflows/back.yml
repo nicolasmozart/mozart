@@ -10,7 +10,6 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  # Nombre del repo ECR que creaste con Terraform (tu output terminaba en .../mozart-ips)
   ECR_REPOSITORY: mozart-ips
 
 concurrency:
@@ -43,18 +42,16 @@ jobs:
           REG="${{ steps.ecr.outputs.registry }}"
           IMG="${REG}/${{ env.ECR_REPOSITORY }}"
           SHA="${{ github.sha }}"
-
           docker build -f apps/backend/Dockerfile apps/backend -t "${IMG}:${SHA}"
           docker push "${IMG}:${SHA}"
-
           docker tag "${IMG}:${SHA}" "${IMG}:candidate"
           docker push "${IMG}:candidate"
 
-      - name: Force ECS deploy (update service)
+      # Como la task usa la etiqueta 'candidate', con forzar despliegue basta
+      - name: Force new deployment in ECS
         run: |
           aws ecs update-service \
             --cluster mozart-cemdi-cluster \
             --service mozart-cemdi-svc \
             --force-new-deployment \
-            --region us-east-1
-
+            --region ${{ env.AWS_REGION }}

@@ -3,7 +3,7 @@
 # - Crea el repositorio ECR
 # - Crea el OIDC provider de GitHub
 # - Rol IAM para que GitHub Actions asuma vía OIDC
-# - Permisos mínimos para hacer build & push a ECR
+# - Permisos mínimos para build/push a ECR + redeploy en ECS
 #############################################
 
 # Repositorio ECR
@@ -14,7 +14,8 @@ resource "aws_ecr_repository" "repo" {
   image_scanning_configuration {
     scan_on_push = true
   }
-   lifecycle {
+
+  lifecycle {
     prevent_destroy = true   # evita borrarlo por accidente
   }
 }
@@ -59,10 +60,11 @@ resource "aws_iam_role" "gha_role" {
   assume_role_policy = data.aws_iam_policy_document.assume.json
 }
 
-# Política con permisos mínimos para ECR build/push
+# Política con permisos: ECR (build/push) + ECS (redeploy)
 data "aws_iam_policy_document" "gha_policy" {
   statement {
     actions = [
+      # --- ECR (build/push) ---
       "ecr:GetAuthorizationToken",
       "ecr:BatchCheckLayerAvailability",
       "ecr:CompleteLayerUpload",
@@ -72,7 +74,12 @@ data "aws_iam_policy_document" "gha_policy" {
       "ecr:GetDownloadUrlForLayer",
       "ecr:InitiateLayerUpload",
       "ecr:PutImage",
-      "ecr:UploadLayerPart"
+      "ecr:UploadLayerPart",
+
+      # --- ECS (redeploy desde GitHub Actions) ---
+      "ecs:UpdateService",
+      "ecs:DescribeServices",
+      "ecs:DescribeClusters"
     ]
     resources = ["*"]
   }
