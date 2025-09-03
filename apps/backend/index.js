@@ -1,16 +1,19 @@
 const express = require('express');
-const {urlencoded, json} = require('express');
-const router = require('./routes/calculadora.routes.js');
 const cors = require('cors');
+const router = require('./routes/calculadora.routes.js');
 
 const app = express();
-
-app.use(urlencoded({extended: true}));
-app.use(json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(cors());
 
+// healthcheck para ECS/ALB
+app.get('/health', (_req, res) => res.status(200).send('ok'));
+
+// tus rutas
 app.use('/v1/calculadora', router);
 
-app.listen(3500, ()=>{
-    console.log("Listening at port 3500");
-})
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Listening at http://0.0.0.0:${PORT}`);
+});
