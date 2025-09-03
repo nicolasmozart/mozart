@@ -13,3 +13,7 @@ output "service_name" {
 output "ecr_repository_url" {
   value = var.ecr_repo_url
 }
+
+output "front_bucket"          { value = module.frontend.bucket_name }
+output "front_distribution_id" { value = module.frontend.distribution_id }
+output "front_cf_domain"       { value = module.frontend.cf_domain }

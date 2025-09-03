@@ -20,3 +20,9 @@ module "backend_ecs" {
   health_check_path = "/health"
   desired_count     = 1
 }
+
+module "frontend" {
+  source      = "./modules/frontend_s3_cf"
+  name_prefix = var.name_prefix
+  aws_region  = var.aws_region
+}
