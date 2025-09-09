@@ -2,11 +2,12 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Instala dependencias
-COPY package*.json ./
+# Copiar archivos de dependencias
+COPY package.json package-lock.json ./
+COPY .npmrc ./   # 👈 asegura que npm use tu config
 RUN npm ci
 
-# Copia el código y compila TypeScript
+# Copiar el resto del código y compilar TypeScript
 COPY . .
 RUN npm run build
 
@@ -17,11 +18,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4000
 
-# Instala solo dependencias de producción
-COPY package*.json ./
+# Instalar solo dependencias de producción
+COPY package.json package-lock.json ./
+COPY .npmrc ./   # 👈 también aquí
 RUN npm ci --only=production
 
-# Copia el build de la etapa anterior
+# Copiar el build de la etapa anterior
 COPY --from=build /app/dist ./dist
 
 # Crear directorio de logs
