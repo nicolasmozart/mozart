@@ -2,9 +2,10 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package.json package-lock.json ./
-RUN npm ci
+# Copiar archivos de dependencias (no falla si no hay package-lock)
+COPY package*.json ./
+# Usamos npm install para evitar el requisito estricto de npm ci
+RUN npm install
 
 # Copiar el resto del código y compilar TypeScript
 COPY . .
@@ -18,8 +19,8 @@ ENV NODE_ENV=production
 ENV PORT=4000
 
 # Instalar solo dependencias de producción
-COPY package.json package-lock.json ./
-RUN npm ci --only=production
+COPY package*.json ./
+RUN npm install --omit=dev
 
 # Copiar el build de la etapa anterior
 COPY --from=build /app/dist ./dist
