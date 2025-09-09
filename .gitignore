@@ -16,10 +16,6 @@ dist-ssr
 **/build/
 **/coverage/
 
-# ───── Env files ─────
-**/.env
-**/.env.*
-
 # ───── Cache / tools ─────
 *.local
 **/.cache/
