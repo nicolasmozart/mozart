@@ -24,12 +24,27 @@ resource "aws_cloudfront_distribution" "dist" {
   default_root_object = var.index_document
   price_class         = "PriceClass_100"
 
+  # ORIGEN S3 (frontend estático)
   origin {
     domain_name              = aws_s3_bucket.front.bucket_regional_domain_name
     origin_id                = "s3-${aws_s3_bucket.front.id}"
     origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
   }
 
+  # ORIGEN ALB (backend) - CF -> ALB por HTTP para evitar mixed content
+  origin {
+    domain_name = "mozart-cemdi-alb-894060528.us-east-1.elb.amazonaws.com"
+    origin_id   = "alb-origin"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # Default: servir S3
   default_cache_behavior {
     target_origin_id       = "s3-${aws_s3_bucket.front.id}"
     viewer_protocol_policy = "redirect-to-https"
@@ -38,21 +53,34 @@ resource "aws_cloudfront_distribution" "dist" {
 
     forwarded_values {
       query_string = true
-      cookies {
-        forward = "none"
-      }
+      cookies { forward = "none" }
+    }
+  }
+
+  # /api/* -> ALB (backend)
+  ordered_cache_behavior {
+    path_pattern           = "/api/*"
+    target_origin_id       = "alb-origin"
+    viewer_protocol_policy = "redirect-to-https"
+
+    allowed_methods = ["GET","HEAD","OPTIONS","PUT","POST","PATCH","DELETE"]
+    cached_methods  = ["GET","HEAD"]
+    min_ttl         = 0
+    default_ttl     = 0
+    max_ttl         = 0
+
+    forwarded_values {
+      query_string = true
+      headers      = ["Origin","Authorization","Content-Type","Accept"]
+      cookies { forward = "all" }
     }
   }
 
   restrictions {
-    geo_restriction {
-      restriction_type = "none"
-    }
+    geo_restriction { restriction_type = "none" }
   }
 
-  viewer_certificate {
-    cloudfront_default_certificate = true
-  }
+  viewer_certificate { cloudfront_default_certificate = true }
 
   custom_error_response {
     error_code            = 404
@@ -60,7 +88,6 @@ resource "aws_cloudfront_distribution" "dist" {
     response_page_path    = "/index.html"
     error_caching_min_ttl = 0
   }
-
   custom_error_response {
     error_code            = 403
     response_code         = 200
@@ -69,7 +96,7 @@ resource "aws_cloudfront_distribution" "dist" {
   }
 }
 
-# Política del bucket para permitir a CloudFront leer objetos (vía OAC)
+# Política del bucket para permitir lectura vía OAC
 data "aws_iam_policy_document" "bucket_policy" {
   statement {
     sid     = "AllowCloudFrontRead"
@@ -81,7 +108,6 @@ data "aws_iam_policy_document" "bucket_policy" {
       type        = "Service"
       identifiers = ["cloudfront.amazonaws.com"]
     }
-
     condition {
       test     = "StringEquals"
       variable = "AWS:SourceArn"

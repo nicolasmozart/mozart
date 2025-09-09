@@ -10,11 +10,9 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  # Defaults seguros; si tienes repo variables/secret, las puedes sobreescribir.
   S3_BUCKET: ${{ vars.S3_BUCKET || 'mozart-cemdi-front' }}
   CF_DIST_ID: ${{ vars.CF_DIST_ID || 'E35WF807SY6L8M' }}
   NODE_VERSION: '20'
-  API_URL: ${{ vars.API_URL || 'http://mozart-cemdi-alb-894060528.us-east-1.elb.amazonaws.com' }}
 
 concurrency:
   group: front-${{ github.ref }}
@@ -43,8 +41,8 @@ jobs:
       - name: Build (Vite)
         working-directory: apps/frontend
         env:
-          # Prioriza secret si existe; si no, usa el ALB del env.
-          VITE_API_URL: ${{ secrets.VITE_API_URL || env.API_URL }}
+          # Usamos ruta relativa para pasar por CloudFront y evitar mixed content
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL || '/api' }}
         run: npm run build
 
       - name: Configure AWS (OIDC)
