@@ -1,0 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-neutral-50 text-neutral-900;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f0f9ff' fill-opacity='0.3'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  * {
+    @apply border-neutral-200;
+  }
+}
+
+@layer components {
+  /* Botones principales médicos */
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-primary-500/30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  }
+  
+  .btn-secondary {
+    @apply bg-white hover:bg-neutral-50 text-neutral-700 font-semibold py-3 px-6 rounded-xl border-2 border-neutral-200 hover:border-primary-300 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-primary-500/30 shadow-sm hover:shadow-md;
+  }
+
+  .btn-success {
+    @apply bg-gradient-to-r from-success-600 to-success-700 hover:from-success-700 hover:to-success-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-success-500/30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  }
+
+  .btn-warning {
+    @apply bg-gradient-to-r from-warning-600 to-warning-700 hover:from-warning-700 hover:to-warning-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-warning-500/30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  }
+
+  .btn-alert {
+    @apply bg-gradient-to-r from-alert-600 to-alert-700 hover:from-alert-700 hover:to-alert-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-alert-500/30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  }
+
+  .btn-outline {
+    @apply bg-transparent hover:bg-primary-50 text-primary-700 font-semibold py-3 px-6 rounded-xl border-2 border-primary-600 hover:border-primary-700 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-primary-500/30;
+  }
+
+  /* Botones de acción pequeños */
+  .btn-action {
+    @apply p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-action-primary {
+    @apply text-primary-600 hover:text-primary-700 hover:bg-primary-50 focus:ring-primary-500;
+  }
+
+  .btn-action-success {
+    @apply text-success-600 hover:text-success-700 hover:bg-success-50 focus:ring-success-500;
+  }
+
+  .btn-action-warning {
+    @apply text-warning-600 hover:text-warning-700 hover:bg-warning-50 focus:ring-warning-500;
+  }
+
+  .btn-action-alert {
+    @apply text-alert-600 hover:text-alert-700 hover:bg-alert-50 focus:ring-alert-500;
+  }
+  
+  /* Campos de entrada médicos */
+  .input-field {
+    @apply block w-full rounded-xl border-2 border-neutral-200 shadow-sm focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all duration-300 py-3 px-4 text-neutral-700 placeholder-neutral-400;
+  }
+
+  .input-field:focus {
+    @apply transform scale-[1.02];
+  }
+
+  .input-field.error {
+    @apply border-alert-500 focus:border-alert-500 focus:ring-alert-500/20;
+  }
+
+  .input-field.success {
+    @apply border-success-500 focus:border-success-500 focus:ring-success-500/20;
+  }
+  
+  /* Cards médicos */
+  .card {
+    @apply bg-white rounded-2xl shadow-medical border border-neutral-100 p-6 transition-all duration-300 hover:shadow-medical-lg;
+  }
+
+  .card-hover {
+    @apply hover:shadow-medical-xl hover:-translate-y-1;
+  }
+
+  .card-medical {
+    @apply bg-gradient-to-br from-white to-primary-50/30 rounded-2xl shadow-medical border border-primary-100 p-6;
+  }
+
+  .card-stats {
+    @apply bg-gradient-to-br from-white to-neutral-50 rounded-2xl shadow-medical border border-neutral-100 p-6;
+  }
+  
+  /* Badges médicos */
+  .badge {
+    @apply inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200;
+  }
+
+  .badge-primary {
+    @apply bg-primary-100 text-primary-800 border border-primary-200;
+  }
+
+  .badge-success {
+    @apply bg-success-100 text-success-800 border border-success-200;
+  }
+
+  .badge-warning {
+    @apply bg-warning-100 text-warning-800 border border-warning-200;
+  }
+
+  .badge-alert {
+    @apply bg-alert-100 text-alert-800 border border-alert-200;
+  }
+
+  .badge-neutral {
+    @apply bg-neutral-100 text-neutral-800 border border-neutral-200;
+  }
+
+  /* Estados médicos */
+  .status-active {
+    @apply bg-success-100 text-success-800 border border-success-200;
+  }
+
+  .status-inactive {
+    @apply bg-neutral-100 text-neutral-600 border border-neutral-200;
+  }
+
+  .status-pending {
+    @apply bg-warning-100 text-warning-800 border border-warning-200;
+  }
+
+  .status-error {
+    @apply bg-alert-100 text-alert-800 border border-alert-200;
+  }
+
+  /* Animaciones médicas */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Gradientes médicos */
+  .gradient-primary {
+    @apply bg-gradient-to-r from-primary-600 to-primary-700;
+  }
+
+  .gradient-medical {
+    @apply bg-gradient-to-r from-medical-600 to-medical-700;
+  }
+
+  .gradient-hero {
+    @apply bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800;
+  }
+
+  /* Sombras médicas */
+  .shadow-medical {
+    box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.1), 0 2px 4px -1px rgba(14, 165, 233, 0.06);
+  }
+
+  .shadow-medical-lg {
+    box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.1), 0 4px 6px -2px rgba(14, 165, 233, 0.05);
+  }
+
+  .shadow-medical-xl {
+    box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.1), 0 10px 10px -5px rgba(14, 165, 233, 0.04);
+  }
+}

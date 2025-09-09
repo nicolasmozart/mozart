@@ -38,12 +38,21 @@ resource "aws_cloudfront_distribution" "dist" {
 
     forwarded_values {
       query_string = true
-      cookies { forward = "none" }
+      cookies {
+        forward = "none"
+      }
     }
   }
 
-  restrictions { geo_restriction { restriction_type = "none" } }
-  viewer_certificate { cloudfront_default_certificate = true }
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
 
   custom_error_response {
     error_code            = 404
@@ -51,6 +60,7 @@ resource "aws_cloudfront_distribution" "dist" {
     response_page_path    = "/index.html"
     error_caching_min_ttl = 0
   }
+
   custom_error_response {
     error_code            = 403
     response_code         = 200
@@ -66,7 +76,11 @@ data "aws_iam_policy_document" "bucket_policy" {
     effect  = "Allow"
     actions = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.front.arn}/*"]
-    principals { type = "Service" identifiers = ["cloudfront.amazonaws.com"] }
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
 
     condition {
       test     = "StringEquals"

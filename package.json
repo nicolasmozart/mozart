@@ -1,0 +1,35 @@
+{
+  "name": "mozart2.1",
+  "version": "2.1.0",
+  "description": "Sistema multi-tenant Mozart 2.1 - Monorepo con backend API y frontend admin",
+  "main": "index.js",
+  "scripts": {
+    "dev:api": "cd apps/api && npm run dev",
+    "dev:web": "cd apps/web && npm run dev",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "build:api": "cd apps/api && npm run build",
+    "build:web": "cd apps/web && npm run build",
+    "build": "npm run build:api && npm run build:web",
+    "install:all": "npm install && cd apps/api && npm install && cd ../web && npm install",
+    "start:api": "cd apps/api && npm start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "multi-tenant",
+    "healthcare",
+    "api",
+    "react",
+    "typescript",
+    "mongodb",
+    "express"
+  ],
+  "author": "Mozart Team",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

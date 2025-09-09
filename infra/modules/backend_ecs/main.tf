@@ -35,8 +35,9 @@ resource "aws_lb" "alb" {
   subnets            = data.aws_subnets.default.ids
 }
 
+# ✅ Usamos `name` (≤32 chars) y dejamos crear-antes-de-destruir
 resource "aws_lb_target_group" "tg" {
-  name        = "${var.name_prefix}-tg"
+  name        = "${substr(var.name_prefix, 0, 20)}-tg-${var.container_port}"
   port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
@@ -45,6 +46,10 @@ resource "aws_lb_target_group" "tg" {
   health_check {
     path    = var.health_check_path
     matcher = "200-399"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -98,8 +103,8 @@ resource "aws_ecs_task_definition" "td" {
   family                   = "${var.name_prefix}-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "512"    # 0.5 vCPU
-  memory                   = "1024"   # 1 GB
+  cpu                      = "512"
+  memory                   = "1024"
   execution_role_arn       = aws_iam_role.exec.arn
   task_role_arn            = aws_iam_role.task.arn
 
