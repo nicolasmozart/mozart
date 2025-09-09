@@ -9,7 +9,7 @@ variable "name_prefix" {
 
 variable "github_repo" {
   type = string
-  # ej: "BoostingSAS/mozart-backend"
+  # ej: "nicolasmozart/mozart"
 }
 
 variable "github_branch" {
@@ -20,10 +20,6 @@ variable "github_branch" {
 variable "ecr_repo_name" {
   type = string
   # ej: "mozart-ips"
-}
-
-variable "ecr_repo_url" {
-  type = string
 }
 
 # 🔹 Dummy por ahora, luego se llenan con Secrets Manager
