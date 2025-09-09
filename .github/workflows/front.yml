@@ -42,7 +42,7 @@ jobs:
         working-directory: apps/frontend
         env:
           # Usamos ruta relativa para pasar por CloudFront y evitar mixed content
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL || '/api' }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL || '/' }}
         run: npm run build
 
       - name: Configure AWS (OIDC)
