@@ -4,7 +4,6 @@ WORKDIR /app
 
 # Copiar archivos de dependencias
 COPY package.json package-lock.json ./
-COPY .npmrc ./   # 👈 asegura que npm use tu config
 RUN npm ci
 
 # Copiar el resto del código y compilar TypeScript
@@ -20,7 +19,6 @@ ENV PORT=4000
 
 # Instalar solo dependencias de producción
 COPY package.json package-lock.json ./
-COPY .npmrc ./   # 👈 también aquí
 RUN npm ci --only=production
 
 # Copiar el build de la etapa anterior
