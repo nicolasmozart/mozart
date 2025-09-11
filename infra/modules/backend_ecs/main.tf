@@ -148,8 +148,9 @@ locals {
   )
 }
 
+# ➜ Policy para que la TASK lea secretos (para uso en runtime con SDK, etc.)
 data "aws_iam_policy_document" "task_secrets_access" {
-  count = length(local.secrets_arns) > 0 ? 1 : 0
+  count = var.secrets_enabled ? 1 : 0
 
   statement {
     sid       = "AllowSecretsManager"
@@ -159,15 +160,39 @@ data "aws_iam_policy_document" "task_secrets_access" {
 }
 
 resource "aws_iam_policy" "task_secrets_access" {
-  count  = length(local.secrets_arns) > 0 ? 1 : 0
+  count  = var.secrets_enabled ? 1 : 0
   name   = "${var.name_prefix}-task-secrets-access"
   policy = data.aws_iam_policy_document.task_secrets_access[0].json
 }
 
 resource "aws_iam_role_policy_attachment" "task_secrets_attach" {
-  count      = length(local.secrets_arns) > 0 ? 1 : 0
+  count      = var.secrets_enabled ? 1 : 0
   role       = aws_iam_role.task.name
   policy_arn = aws_iam_policy.task_secrets_access[0].arn
+}
+
+# ➜ Policy para que el EXECUTION ROLE también pueda obtener secretos
+#    (necesario para inyectar 'secrets' del contenedor al iniciar la task)
+data "aws_iam_policy_document" "exec_secrets_access" {
+  count = var.secrets_enabled ? 1 : 0
+
+  statement {
+    sid       = "AllowSecretsManagerForExecRole"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = local.secrets_arns
+  }
+}
+
+resource "aws_iam_policy" "exec_secrets_access" {
+  count  = var.secrets_enabled ? 1 : 0
+  name   = "${var.name_prefix}-exec-secrets-access"
+  policy = data.aws_iam_policy_document.exec_secrets_access[0].json
+}
+
+resource "aws_iam_role_policy_attachment" "exec_secrets_attach" {
+  count      = var.secrets_enabled ? 1 : 0
+  role       = aws_iam_role.exec.name
+  policy_arn = aws_iam_policy.exec_secrets_access[0].arn
 }
 
 ########################################

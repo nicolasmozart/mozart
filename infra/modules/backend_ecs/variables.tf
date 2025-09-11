@@ -17,6 +17,13 @@ variable "jwt_secret_arn" {
   default = null
 }
 
+# Habilita la creación de la policy de Secrets (evita 'unknown count' en plan)
+variable "secrets_enabled" {
+  type        = bool
+  default     = false
+  description = "Si true, crea la policy/attach para leer Secrets Manager."
+}
+
 # Certificado ACM para HTTPS
 variable "acm_certificate_arn" {
   type        = string

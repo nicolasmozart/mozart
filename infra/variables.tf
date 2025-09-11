@@ -33,7 +33,7 @@ variable "jwt_secret_arn" {
   default = null
 }
 
-# 🔑 Dominio y zone_id para cert ACM (API)
+# 🔑 Dominio y zone_id para cert ACM
 variable "api_domain" {
   type        = string
   description = "Dominio de la API (ej: api.mozartia.com)"
@@ -44,8 +44,19 @@ variable "zone_id" {
   description = "ID de la zona hospedada en Route53"
 }
 
-# ✨ NUEVO: dominio propio del front
+# ✨ Dominio propio del front
 variable "front_domain" {
   type        = string
   description = "Dominio del frontend (ej: app.mozartia.com)"
+}
+
+# 🧩 NUEVO: valores de secretos (se crean en Secrets Manager vía Terraform)
+variable "mongodb_uri_value" {
+  type      = string
+  sensitive = true
+}
+
+variable "jwt_secret_value" {
+  type      = string
+  sensitive = true
 }
