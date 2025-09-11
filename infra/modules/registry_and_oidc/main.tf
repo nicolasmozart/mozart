@@ -16,7 +16,7 @@ resource "aws_ecr_repository" "repo" {
   }
 
   lifecycle {
-    prevent_destroy = true   # evita borrarlo por accidente
+    prevent_destroy = true # evita borrarlo por accidente
   }
 }
 

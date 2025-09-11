@@ -26,6 +26,37 @@ resource "aws_cloudfront_origin_access_control" "oac" {
   signing_protocol                  = "sigv4"
 }
 
+#########################################################
+# Certificado ACM para el FRONT (app.mozartia.com)      #
+#########################################################
+
+resource "aws_acm_certificate" "front_cert" {
+  domain_name       = var.front_domain
+  validation_method = "DNS"
+  lifecycle { create_before_destroy = true }
+}
+
+resource "aws_route53_record" "front_cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.front_cert.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
+  }
+
+  zone_id = var.zone_id
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.record]
+  ttl     = 60
+}
+
+resource "aws_acm_certificate_validation" "front_cert_validation" {
+  certificate_arn         = aws_acm_certificate.front_cert.arn
+  validation_record_fqdns = [for r in aws_route53_record.front_cert_validation : r.fqdn]
+}
+
 #############################################
 # CloudFront Distribution (S3 + ALB origins)#
 #############################################
@@ -36,6 +67,8 @@ resource "aws_cloudfront_distribution" "dist" {
   default_root_object = var.index_document
   price_class         = "PriceClass_100"
 
+  aliases = [var.front_domain]
+
   # ORIGEN S3 (frontend estático)
   origin {
     domain_name              = aws_s3_bucket.front.bucket_regional_domain_name
@@ -45,8 +78,7 @@ resource "aws_cloudfront_distribution" "dist" {
 
   # ORIGEN ALB (backend) - CF -> ALB por HTTP para evitar mixed content
   origin {
-    # ⚠️ Cambia este DNS si tu ALB se recrea
-    domain_name = "mozart-cemdi-alb-894060528.us-east-1.elb.amazonaws.com"
+    domain_name = var.alb_dns_name
     origin_id   = "alb-origin"
 
     custom_origin_config {
@@ -71,63 +103,52 @@ resource "aws_cloudfront_distribution" "dist" {
     }
   }
 
-  # 1) /auth/* -> ALB (tu auth no está bajo /api)
+  # 1) /auth/* -> ALB (si tu auth no va bajo /api)
   ordered_cache_behavior {
     path_pattern           = "/auth/*"
     target_origin_id       = "alb-origin"
     viewer_protocol_policy = "redirect-to-https"
 
-    allowed_methods = ["GET","HEAD","OPTIONS","PUT","POST","PATCH","DELETE"]
-    cached_methods  = ["GET","HEAD"]
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods  = ["GET", "HEAD"]
     min_ttl         = 0
     default_ttl     = 0
     max_ttl         = 0
 
     forwarded_values {
       query_string = true
-      headers      = ["Origin","Authorization","Content-Type","Accept"]
+      headers      = ["Origin", "Authorization", "Content-Type", "Accept"]
       cookies { forward = "all" }
     }
   }
 
-  # 2) /api/* -> ALB (para el resto de endpoints que sí usan /api)
+  # 2) /api/* -> ALB
   ordered_cache_behavior {
     path_pattern           = "/api/*"
     target_origin_id       = "alb-origin"
     viewer_protocol_policy = "redirect-to-https"
 
-    allowed_methods = ["GET","HEAD","OPTIONS","PUT","POST","PATCH","DELETE"]
-    cached_methods  = ["GET","HEAD"]
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods  = ["GET", "HEAD"]
     min_ttl         = 0
     default_ttl     = 0
     max_ttl         = 0
 
     forwarded_values {
       query_string = true
-      headers      = ["Origin","Authorization","Content-Type","Accept"]
+      headers      = ["Origin", "Authorization", "Content-Type", "Accept"]
       cookies { forward = "all" }
     }
   }
-
-  # (Opcional) /ping -> ALB (útil para test de salud)
-  # ordered_cache_behavior {
-  #   path_pattern           = "/ping*"
-  #   target_origin_id       = "alb-origin"
-  #   viewer_protocol_policy = "redirect-to-https"
-  #   allowed_methods = ["GET","HEAD","OPTIONS"]
-  #   cached_methods  = ["GET","HEAD"]
-  #   min_ttl = 0
-  #   default_ttl = 0
-  #   max_ttl = 0
-  #   forwarded_values { query_string = true, cookies { forward = "none" } }
-  # }
 
   restrictions {
     geo_restriction { restriction_type = "none" }
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = aws_acm_certificate_validation.front_cert_validation.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   # SPA fallbacks
@@ -151,9 +172,9 @@ resource "aws_cloudfront_distribution" "dist" {
 
 data "aws_iam_policy_document" "bucket_policy" {
   statement {
-    sid     = "AllowCloudFrontRead"
-    effect  = "Allow"
-    actions = ["s3:GetObject"]
+    sid       = "AllowCloudFrontRead"
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.front.arn}/*"]
 
     principals {
@@ -172,4 +193,20 @@ data "aws_iam_policy_document" "bucket_policy" {
 resource "aws_s3_bucket_policy" "front" {
   bucket = aws_s3_bucket.front.id
   policy = data.aws_iam_policy_document.bucket_policy.json
+}
+
+#############################################
+# Alias DNS del FRONT: app.mozartia.com     #
+#############################################
+
+resource "aws_route53_record" "front_alias" {
+  zone_id = var.zone_id
+  name    = var.front_domain
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.dist.domain_name
+    zone_id                = aws_cloudfront_distribution.dist.hosted_zone_id
+    evaluate_target_health = false
+  }
 }

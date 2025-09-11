@@ -1,3 +1,7 @@
+########################################
+# Red y ALB
+########################################
+
 data "aws_vpc" "default" {
   default = true
 }
@@ -20,6 +24,13 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -35,7 +46,6 @@ resource "aws_lb" "alb" {
   subnets            = data.aws_subnets.default.ids
 }
 
-# ✅ Usamos `name` (≤32 chars) y dejamos crear-antes-de-destruir
 resource "aws_lb_target_group" "tg" {
   name        = "${substr(var.name_prefix, 0, 20)}-tg-${var.container_port}"
   port        = var.container_port
@@ -53,6 +63,7 @@ resource "aws_lb_target_group" "tg" {
   }
 }
 
+# Listener HTTP :80
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.alb.arn
   port              = 80
@@ -64,7 +75,24 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# Roles de ECS
+# Listener HTTPS :443
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.alb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = var.acm_certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg.arn
+  }
+}
+
+########################################
+# Roles y Logs
+########################################
+
 data "aws_iam_policy_document" "task_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -95,6 +123,57 @@ resource "aws_cloudwatch_log_group" "lg" {
   retention_in_days = 14
 }
 
+########################################
+# Permisos para leer secretos (solo si hay)
+########################################
+
+locals {
+  secrets_arns = compact([
+    var.mongodb_uri_secret_arn,
+    var.jwt_secret_arn,
+  ])
+
+  container_env = [
+    { name = "NODE_ENV", value = "production" },
+    { name = "PORT", value = tostring(var.container_port) },
+  ]
+
+  container_secrets = concat(
+    var.mongodb_uri_secret_arn != null ? [
+      { name = "MONGODB_URI", valueFrom = var.mongodb_uri_secret_arn }
+    ] : [],
+    var.jwt_secret_arn != null ? [
+      { name = "JWT_SECRET", valueFrom = var.jwt_secret_arn }
+    ] : []
+  )
+}
+
+data "aws_iam_policy_document" "task_secrets_access" {
+  count = length(local.secrets_arns) > 0 ? 1 : 0
+
+  statement {
+    sid       = "AllowSecretsManager"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = local.secrets_arns
+  }
+}
+
+resource "aws_iam_policy" "task_secrets_access" {
+  count  = length(local.secrets_arns) > 0 ? 1 : 0
+  name   = "${var.name_prefix}-task-secrets-access"
+  policy = data.aws_iam_policy_document.task_secrets_access[0].json
+}
+
+resource "aws_iam_role_policy_attachment" "task_secrets_attach" {
+  count      = length(local.secrets_arns) > 0 ? 1 : 0
+  role       = aws_iam_role.task.name
+  policy_arn = aws_iam_policy.task_secrets_access[0].arn
+}
+
+########################################
+# ECS Cluster + Task Definition + Service
+########################################
+
 resource "aws_ecs_cluster" "cluster" {
   name = "${var.name_prefix}-cluster"
 }
@@ -110,31 +189,33 @@ resource "aws_ecs_task_definition" "td" {
 
   container_definitions = jsonencode([
     {
-      name      = "app",
-      image     = "${var.ecr_repo_url}:${var.image_tag}",
-      essential = true,
+      name      = "app"
+      image     = "${var.ecr_repo_url}:${var.image_tag}"
+      essential = true
+
       portMappings = [{
-        containerPort = var.container_port,
-        hostPort      = var.container_port,
+        containerPort = var.container_port
+        hostPort      = var.container_port
         protocol      = "tcp"
-      }],
+      }]
+
       logConfiguration = {
-        logDriver = "awslogs",
+        logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.lg.name,
-          awslogs-region        = var.aws_region,
+          awslogs-group         = aws_cloudwatch_log_group.lg.name
+          awslogs-region        = var.aws_region
           awslogs-stream-prefix = "ecs"
         }
-      },
-      environment = [
-        { name = "NODE_ENV", value = "production" },
-        { name = "PORT",     value = tostring(var.container_port) }
-      ],
+      }
+
+      environment = local.container_env
+      secrets     = local.container_secrets
+
       healthCheck = {
-        command     = ["CMD-SHELL", "wget -qO- http://localhost:${var.container_port}${var.health_check_path} || exit 1"],
-        interval    = 30,
-        timeout     = 5,
-        retries     = 3,
+        command     = ["CMD-SHELL", "wget -qO- http://localhost:${var.container_port}${var.health_check_path} || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
         startPeriod = 10
       }
     }

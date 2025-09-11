@@ -32,3 +32,20 @@ variable "jwt_secret_arn" {
   type    = string
   default = null
 }
+
+# 🔑 Dominio y zone_id para cert ACM (API)
+variable "api_domain" {
+  type        = string
+  description = "Dominio de la API (ej: api.mozartia.com)"
+}
+
+variable "zone_id" {
+  type        = string
+  description = "ID de la zona hospedada en Route53"
+}
+
+# ✨ NUEVO: dominio propio del front
+variable "front_domain" {
+  type        = string
+  description = "Dominio del frontend (ej: app.mozartia.com)"
+}

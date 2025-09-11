@@ -139,7 +139,7 @@ const startServer = async () => {
     
     // Conectar a la base de datos
     await connectDB();
-    
+    const PORT = Number(config.port ?? 4000);
     // Iniciar el servidor
     app.listen(PORT, () => {
       console.log(`🚀 API corriendo en http://localhost:${PORT}`);
